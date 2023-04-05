@@ -31,12 +31,13 @@ Una vez descargado y descomprimido el archivo encontrara una carpeta llamada `ju
 
 El formato del archivo `/etc/jungle_converter_m3u/satellite_references.txt` es simple lo podeis ver cuando lo abras con un editor de textos:
 
-`accion-->1:0:19:7509:420:1:C00000:0:0:0:-->M+ ACCIÓN HD
-comedia-->1:0:19:7857:41A:1:C00000:0:0:0:`
+`accion-->1:0:19:7509:420:1:C00000:0:0:0:-->M+ ACCIÓN HD`
 
-accion= a la palabra clave para busqueda, las palabras que ponga aqui ponerlas sin espacios, por ejemplo podria ser tambien series2.
-1:0:19:7509:420:1:C00000:0:0:0: = el service reference que se le asigna
-M+ ACCIÓN HD = nombre del canal que quieres que aparezca en el favorito enigma2 este es opcional si no lo pones tomara el nombre del canal del m3u.
+`comedia-->1:0:19:7857:41A:1:C00000:0:0:0:`
+
+* accion= a la palabra clave para busqueda, las palabras que ponga aqui ponerlas sin espacios, por ejemplo podria ser tambien series2.
+* 1:0:19:7509:420:1:C00000:0:0:0: = el service reference que se le asigna
+ *M+ ACCIÓN HD = nombre del canal que quieres que aparezca en el favorito enigma2 este es opcional si no lo pones tomara el nombre del canal del m3u.
 
 Para la ejecucion del script basta ejecutar por terminal el comando:
 
