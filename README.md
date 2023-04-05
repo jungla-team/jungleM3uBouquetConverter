@@ -1,5 +1,3 @@
-![enter image description here](https://jungle-team.com/wp-content/uploads/2023/03/logobot.png)
-
 [   ![Licencia Junglebot](https://jungle-team.com/wp-content/uploads/2023/03/licence.png)
 ](https://github.com/jungla-team/junglebot/blob/master/LICENSE) [![chat telegram](https://jungle-team.com/wp-content/uploads/2023/03/telegram.png)
 ](https://t.me/joinchat/R_MzlCWf4Kahgb5G) [![donar a jungle](https://jungle-team.com/wp-content/uploads/2023/03/donate.png)
@@ -33,11 +31,17 @@ El formato del archivo `/etc/jungle_converter_m3u/satellite_references.txt` es s
 
 `accion-->1:0:19:7509:420:1:C00000:0:0:0:-->M+ ACCIÓN HD`
 
+
 `comedia-->1:0:19:7857:41A:1:C00000:0:0:0:`
 
 * accion= a la palabra clave para busqueda, las palabras que ponga aqui ponerlas sin espacios, por ejemplo podria ser tambien series2.
+
+
 * 1:0:19:7509:420:1:C00000:0:0:0: = el service reference que se le asigna
- *M+ ACCIÓN HD = nombre del canal que quieres que aparezca en el favorito enigma2 este es opcional si no lo pones tomara el nombre del canal del m3u.
+
+
+* M+ ACCIÓN HD = nombre del canal que quieres que aparezca en el favorito enigma2 este es opcional si no lo pones tomara el nombre del canal del m3u.
+ 
 
 Para la ejecucion del script basta ejecutar por terminal el comando:
 
