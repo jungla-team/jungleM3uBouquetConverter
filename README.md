@@ -14,9 +14,13 @@ Si deseas estar a la ultima sobre novedades desarrolladas por jungle team [canal
 
 ## [](jungleteam#instalando)Instalando
 
-Puede instalar o actualizar `junglem3utobouquet` simplemente descargando los archivos des github [Enlace para Descarga](https://github.com/jungla-team/jungleM3uBouquetConverter/archive/refs/heads/main.zip)
+Puede instalar o actualizar `junglem3utobouquet` simplemente añadiendo los repositorios jungle-team y luego realizando instalacion:
 
-Una vez descargado y descomprimido el archivo encontrara una carpeta llamada `jungle_converter_m3u` dicha carpeta introduzcala en el directorio `/etc` del receptor enigma2.
+$ wget http://tropical.jungle-team.online/script/jungle-feed.conf -P /etc/opkg/
+
+$ opkg update
+
+$ opkg install enigma2-plugin-extensions-junglem3utobouquet
 
 ## Ejecucion y Funcionamiento
 
@@ -55,7 +59,7 @@ Para la ejecucion del script basta ejecutar por terminal el comando:
 Si los recursos mencionados anteriormente no responden a sus preguntas o dudas,  o te ha resultado muy complicado, tienes varias formas de obtener ayuda.
 
 1.  Tenemos una comunidad donde se intenta que se ayudan unos a otros en nuestro [grupo de Telegram](https://t.me/joinchat/R_MzlCWf4Kahgb5G) . ¡Únete a nosotros! Hacer una pregunta aquí suele ser la forma más rápida de obtener respuesta y poder hablar directamente con los desarrolladores.
-2.  Tambien puedes leer con detenimiento la [Guia avanzada de junglem3utobouquet](https://jungle-team.com/) .
+2.  Tambien puedes leer con detenimiento la [Guia avanzada de junglem3utobouquet](https://jungle-team.com/junglem3utobouquet-convertir-m3u-a-favorito-enigma2-con-epg-y-picon/) .
 
 ## contribuir
 
