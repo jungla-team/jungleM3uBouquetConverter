@@ -31,14 +31,24 @@ def load_satellite_reference(file_path):
         for line in file.readlines():
             try:
                 parts = line.strip().split("-->")
-                if len(parts) == 3:
-                    name, ref, display_name = parts
+                if len(parts) == 4:
+                    name, ref, display_name, order = parts
+                    order = int(order)
+                elif len(parts) == 3:
+                    name, ref, display_name_or_order = parts
+                    try:
+                        order = int(display_name_or_order)
+                        display_name = None
+                    except ValueError:
+                        display_name = display_name_or_order
+                        order = None
                 else:
                     name, ref = parts
                     display_name = None
+                    order = None
 
                 if is_valid_name(name):
-                    data[clean_channel_name(name)] = (ref, display_name)
+                    data[clean_channel_name(name)] = (ref, display_name, order)
                 else:
                     print(f"Subnormal, tienes error en la línea: {line.strip()}")
             except ValueError:
@@ -88,6 +98,8 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
     enigma2_file.write("#NAME {}\n".format(favorite_name))
     unique_id = 1
     channel_reference = None
+    channels = []
+    occupied_orders = []
     for line in m3u_file:
         if line.startswith("#EXTINF:"):
             channel_name = re.search('tvg-name="(.*?)"', line)
@@ -106,21 +118,42 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                         continue
             matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
             if matching_channel_name:
-                channel_reference, channel_display_name = satellite_reference.get(matching_channel_name.lower())
+                channel_reference, channel_display_name, order = satellite_reference.get(matching_channel_name.lower())
                 if channel_display_name:
                     channel_name = channel_display_name
                 write_to_log(log_path, f"Parcheado: {channel_name}")
+
+                if order is not None:
+                    occupied_orders.append(order)
             else:
                 channel_reference = "4097:0:1:{:X}:0:0:0:0:0:0:".format(unique_id)
                 unique_id += 1
+                order = None
                 write_to_log(log_path, f"No encontrado: {channel_name}")
         elif line.startswith("http"):
             if channel_reference is not None:
                 channel_url = line.strip()
                 enigma2_url = "http%3a" + channel_url[5:].replace(":", "%3a")
-                enigma2_file.write("#SERVICE {}{}\n".format(channel_reference, enigma2_url).replace(" fhd", ""))
-                enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))
-                channel_reference = None  # Restablecer channel_reference para la siguiente iteración
+                channels.append((order, channel_reference, enigma2_url, channel_name))
+                channel_reference = None
+    def get_free_order():
+        free_order = 1
+        while True:
+            if free_order not in occupied_orders:
+                yield free_order
+            free_order += 1
+    free_order_gen = get_free_order()
+    ordered_channels = []
+    for channel in channels:
+        if channel[0] is None:
+            free_order = next(free_order_gen)
+            ordered_channels.append((free_order, *channel[1:]))
+        else:
+            ordered_channels.append(channel)
+    ordered_channels.sort(key=lambda x: x[0])
+    for _, channel_reference, enigma2_url, channel_name in ordered_channels:
+        enigma2_file.write("#SERVICE {}{}\n".format(channel_reference, enigma2_url).replace(" fhd", ""))
+        enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))
     m3u_file.close()
     enigma2_file.close()
 
