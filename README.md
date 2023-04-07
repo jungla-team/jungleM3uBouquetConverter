@@ -8,6 +8,8 @@
 
 Hemos realizado un script python `junglem3utobouquet` ejecutable para receptores enigma2 que te genera un favorito enigma2 a partir de una lista en formato .m3u, el favorito lo crea con los service reference Satelite o Tdt asignados en un diccionario de busqueda de palabras clave similares creado en el archivo llamado `satellite_references.txt`
 
+Como el codigo esta diseñado para canales Movistar+ asignar el service reference ya sea satelite o tdt, se recomienda utilizar un archivo .m3u solamente con canales españoles.
+
 Si deseas obtener ayudas asi como prestarlas sobre este desarrollo, asi como con enigma2 en general, tenemos  [grupo de Telegram](https://t.me/joinchat/R_MzlCWf4Kahgb5Gp) . ¡Únete a nosotros!
 
 Si deseas estar a la ultima sobre novedades desarrolladas por jungle team [canal de Telegram noticias](https://t.me/+myB-5lmtSZ1hZDlk) .
@@ -33,6 +35,7 @@ $ opkg install enigma2-plugin-extensions-junglem3utobouquet
 5. De la ejecucion del script se creara un log en `/etc/jungle_converter_m3u` que mostrara que canales no han sido parcheados por si necesita como hemos mencionado añadir mas palabras claves para afinar.
 6. Tras la ejecucion necesitara reiniciar enigma2 para que aparezca los nuevos favoritos en la lista canales.
 7. para la comparacion elimina los espacios del nombre del canal y caracteres no alfanumericos, asi como acentos para una mejor comparacion.
+8. Permite asignarle un numero de orden del canal
 
 El formato del archivo `/etc/jungle_converter_m3u/satellite_references.txt` es simple lo podeis ver cuando lo abras con un editor de textos:
 
@@ -48,6 +51,12 @@ El formato del archivo `/etc/jungle_converter_m3u/satellite_references.txt` es s
 
 
 * M+ ACCIÓN HD = nombre del canal que quieres que aparezca en el favorito enigma2 este es opcional si no lo pones tomara el nombre del canal del m3u.
+
+Ademas permite asignar el numero de orden que tendra el canal en el favorito enigma2
+
+`accion-->1:0:19:7509:420:1:C00000:0:0:0:-->M+ ACCIÓN HD-->17`
+
+Los parametros nombre de canal y numero de orden son opcionales los podeis poner o no.
  
 
 Para la ejecucion del script basta ejecutar por terminal el comando:
