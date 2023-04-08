@@ -1,6 +1,7 @@
 ![logo_converter](https://user-images.githubusercontent.com/44529886/230175467-824c6bf0-6e18-4d51-be34-98ff16031840.png)
 
 
+![python](https://user-images.githubusercontent.com/44529886/230740585-e3637e6c-9bac-472c-88b1-d249a1490e34.png)
 [   ![Licencia Junglebot](https://jungle-team.com/wp-content/uploads/2023/03/licence.png)
 ](https://github.com/jungla-team/junglebot/blob/master/LICENSE) [![chat telegram](https://jungle-team.com/wp-content/uploads/2023/03/telegram.png)
 ](https://t.me/joinchat/R_MzlCWf4Kahgb5G) [![donar a jungle](https://jungle-team.com/wp-content/uploads/2023/03/donate.png)
@@ -8,7 +9,7 @@
 
 Hemos realizado un script python `junglem3utobouquet` ejecutable para receptores enigma2 que te genera un favorito enigma2 a partir de una lista en formato .m3u, el favorito lo crea con los service reference Satelite o Tdt asignados en un diccionario de busqueda de palabras clave similares creado en el archivo llamado `satellite_references.txt`
 
-Como el codigo esta diseñado para canales Movistar+ asignar el service reference ya sea satelite o tdt, se recomienda utilizar un archivo .m3u solamente con canales españoles.
+El codigo esta diseñado para filtrar los canales de la plataforma movistar+ para poder obtener de los mismos Picon y EPG.
 
 Si deseas obtener ayudas asi como prestarlas sobre este desarrollo, asi como con enigma2 en general, tenemos  [grupo de Telegram](https://t.me/joinchat/R_MzlCWf4Kahgb5Gp) . ¡Únete a nosotros!
 
@@ -16,22 +17,27 @@ Si deseas estar a la ultima sobre novedades desarrolladas por jungle team [canal
 
 ## [](jungleteam#instalando)Instalando
 
-Puede instalar o actualizar `junglem3utobouquet` simplemente añadiendo los repositorios jungle-team y luego realizando instalacion:
+--> Puede instalar o actualizar `junglem3utobouquet` simplemente añadiendo los repositorios jungle-team y luego realizando instalacion:
 
-$ wget http://tropical.jungle-team.online/script/jungle-feed.conf -P /etc/opkg/
-
-$ opkg update
-
-$ opkg install enigma2-plugin-extensions-junglem3utobouquet
+```{code-block} bash
+wget http://tropical.jungle-team.online/script/jungle-feed.conf -P /etc/opkg/
+```
+```{code-block} bash
+opkg update
+```
+```{code-block} bash
+opkg install enigma2-plugin-extensions-junglem3utobouquet
+```
+--> Si lo deseas tambien puedes descargarte el paquete ipk desde [Lanzamientos](https://github.com/jungla-team/jungleM3uBouquetConverter/releases), una vez descargado, introducirlo en el directorio `tmp`del receptor y ejecutar su instalacion:
 
 ## Ejecucion y Funcionamiento
 
 `junglem3utobouquet` realiza las siguientes funciones tras su ejecucion:
 
-1. Convierte cualquier archivo .m3u que hallamos introducido previamente en `/etc/jungle_converter_m3u` a favorito enigma2
-2. Compara los nombres del canal del archivo .m3u con palabras clave del diccionario `/etc/jungle_converter_m3u/satellite_references.txt` y las coincidentes crea el canal en el favorito enigma2 con el service reference asignado a esa palabra clave, ademas en ese mismo archivo si se desea tambien se puede añadir un nombre de canal distinto al que le corresponderia segun el archivo .m3u por si queremos ponerlo de otra manera.
+1. Convierte cualquier archivo .m3u que hallamos introducido previamente en `/etc/jungle_converter_m3u` a favorito enigma2, tambien permite ejecutarlo introduciendo la url de descarga del m3u.
+2. Compara los nombres del canal del archivo .m3u con palabras clave del diccionario `/etc/jungle_converter_m3u/satellite_references.txt` y las coincidentes crea el canal en el favorito enigma2 con el service reference asignado a esa palabra clave, ademas en ese mismo archivo si se desea tambien se puede añadir un nombre de canal distinto al que le corresponderia segun el archivo .m3u por si queremos ponerlo de otra manera, comparacion la realiza con los canales españoles, para ello el codigo esta realizado para buscar canales con los distintos prefijos de indentificacion de idioma del m3u.
 3. En caso que no le asignemos ninguno nombre extra se creara con el nombre que lleve en el archivo m3u, si no encuentra ninguna coincidencia entre palabra clave y nombre del canal se le asignara un service reference automaticamente correlativos.
-4. El archivo `satellite_references.txt` ya viene parcheado con el service reference y palabras clave que parchearan la mayoria de canales, en el caso de faltar algun canal puede añadir mas palabras claves a dicho archivo.
+4. El archivo `satellite_references.txt` ya viene parcheado con el service reference y palabras clave que parchearan asi como el orden en la mayoria de canales, en el caso de faltar algun canal puede añadir mas palabras claves a dicho archivo.
 5. De la ejecucion del script se creara un log en `/etc/jungle_converter_m3u` que mostrara que canales no han sido parcheados por si necesita como hemos mencionado añadir mas palabras claves para afinar.
 6. Tras la ejecucion necesitara reiniciar enigma2 para que aparezca los nuevos favoritos en la lista canales.
 7. para la comparacion elimina los espacios del nombre del canal y caracteres no alfanumericos, asi como acentos para una mejor comparacion.
@@ -59,9 +65,19 @@ Ademas permite asignar el numero de orden que tendra el canal en el favorito eni
 Los parametros nombre de canal y numero de orden son opcionales los podeis poner o no.
  
 
-Para la ejecucion del script basta ejecutar por terminal el comando:
+Para la ejecucion del script podemos realizarlo de dos maneras:
 
-`python /etc/jungle_converter_m3u/junglem3utobouquet.py` 
+* Si hemos introducido el archivo .m3u en el directorio `/etc/jungle_converter_m3u/` ejecutaremos:
+
+```{code-block} bash
+python /etc/jungle_converter_m3u/junglem3utobouquet.py
+```
+
+* Si deseamos realizar la conversion directamente con la url ejecutaremos:
+
+```{code-block} bash
+python /etc/jungle_converter_m3u/junglem3utobouquet.py urldescarga nombrequedeseemo
+```
 
 ## Obteniendo ayuda
 
