@@ -1,8 +1,13 @@
+# -*- coding: utf-8 -*-
 #Convertir m3u en favorito enigma2 by jungle-team en base a diccionario palabras clave.
 
 import os
 import re
 import glob
+import sys 
+import requests
+
+ALLOWED_PREFIXES = ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:"]
 
 def write_to_log(log_path, message):
     with open(log_path, 'a') as log_file:
@@ -46,7 +51,6 @@ def load_satellite_reference(file_path):
                     name, ref = parts
                     display_name = None
                     order = None
-
                 if is_valid_name(name):
                     data[clean_channel_name(name)] = (ref, display_name, order)
                 else:
@@ -54,7 +58,7 @@ def load_satellite_reference(file_path):
             except ValueError:
                 print(f"Subnormal, tienes error en la línea: {line.strip()}")
         return data
-
+        
 def find_channel_with_keyword(channel_name, satellite_reference):
     cleaned_channel_name = clean_channel_name(channel_name)
     matched_keyword = None
@@ -65,7 +69,7 @@ def find_channel_with_keyword(channel_name, satellite_reference):
             matched_keyword = keyword
             max_length = len(cleaned_keyword)
     return matched_keyword
-    
+
 def add_to_bouquets_tv(favorite_name):
     bouquets_tv_path = "/etc/enigma2/bouquets.tv"
     entry = '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.{}.tv" ORDER BY bouquet\n'.format(favorite_name)
@@ -100,8 +104,12 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
     channel_reference = None
     channels = []
     occupied_orders = []
+    skip_channel = False
     for line in m3u_file:
         if line.startswith("#EXTINF:"):
+            if skip_channel:
+                skip_channel = False
+                continue
             channel_name = re.search('tvg-name="(.*?)"', line)
             if channel_name:
                 channel_name = channel_name.group(1)
@@ -116,26 +124,39 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                     else:
                         print(f"Error: no se pudo extraer el nombre del canal de la línea: {line.strip()}")
                         continue
-            matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
-            if matching_channel_name:
-                channel_reference, channel_display_name, order = satellite_reference.get(matching_channel_name.lower())
-                if channel_display_name:
-                    channel_name = channel_display_name
-                write_to_log(log_path, f"Parcheado: {channel_name}")
+            prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
+            if prefix_allowed:
+                matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
+                if matching_channel_name:
+                    channel_reference, channel_display_name, order = satellite_reference.get(matching_channel_name.lower())
+                    if channel_display_name:
+                        channel_name = channel_display_name
+                    write_to_log(log_path, f"Parcheado: {channel_name}")
 
-                if order is not None:
-                    occupied_orders.append(order)
+                    if order is not None:
+                        occupied_orders.append(order)
+                else:
+                    channel_reference = "4097:0:1:{:X}:0:0:0:0:0:0:".format(unique_id)
+                    unique_id += 1
+                    order = None
+                    write_to_log(log_path, f"No encontrado: {channel_name}")
             else:
                 channel_reference = "4097:0:1:{:X}:0:0:0:0:0:0:".format(unique_id)
                 unique_id += 1
                 order = None
-                write_to_log(log_path, f"No encontrado: {channel_name}")
         elif line.startswith("http"):
-            if channel_reference is not None:
+            if line.strip().endswith(".mkv") or line.strip().endswith(".avi") or line.strip().endswith(".mp4"):
+                skip_channel = True
+                channel_reference = None
+                continue
+            if channel_reference is not None and not skip_channel:
                 channel_url = line.strip()
                 enigma2_url = "http%3a" + channel_url[5:].replace(":", "%3a")
                 channels.append((order, channel_reference, enigma2_url, channel_name))
                 channel_reference = None
+            elif skip_channel:
+                skip_channel = False
+
     def get_free_order():
         free_order = 1
         while True:
@@ -144,30 +165,52 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
             free_order += 1
     free_order_gen = get_free_order()
     ordered_channels = []
+    unordered_channels = []
     for channel in channels:
         if channel[0] is None:
-            free_order = next(free_order_gen)
-            ordered_channels.append((free_order, *channel[1:]))
+            unordered_channels.append(channel)
         else:
             ordered_channels.append(channel)
+    max_order = max(ordered_channels, key=lambda x: x[0])[0]
+    for i, channel in enumerate(unordered_channels, start=max_order + 1):
+        ordered_channels.append((i, *channel[1:]))
     ordered_channels.sort(key=lambda x: x[0])
     for _, channel_reference, enigma2_url, channel_name in ordered_channels:
-        enigma2_file.write("#SERVICE {}{}\n".format(channel_reference, enigma2_url).replace(" fhd", ""))
+        enigma2_file.write("#SERVICE {}{}\n".format(channel_reference,enigma2_url))
         enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))
     m3u_file.close()
     enigma2_file.close()
 
 if __name__ == "__main__":
-    input_files = glob.glob("/etc/jungle_converter_m3u/*.m3u")
-    if not input_files:
-        print("Vamos a ver, piensa, si no tienes ningun m3u en el directorio /etc/jungle_converter_m3u como quieres que funcione")
+    if len(sys.argv) > 1:
+        m3u_url = sys.argv[1]
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+        response = requests.get(m3u_url, headers=headers)
+        if response.status_code == 200:
+            if len(sys.argv) > 2:
+                output_filename = sys.argv[2]
+                if not output_filename.endswith(".m3u"):
+                    output_filename += ".m3u"
+            else:
+                output_filename = "temp.m3u"
+            output_path = os.path.join("/etc/jungle_converter_m3u", output_filename)
+            with open(output_path, "wb") as temp_m3u:
+                temp_m3u.write(response.content)
+            input_files = [output_path]
+        else:
+            print(f"No se pudo descargar el archivo m3u de {m3u_url}. Código de estado: {response.status_code}")
+            sys.exit(1)
     else:
-        output_dir = "/etc/enigma2"
-        satellite_reference_file = "/etc/jungle_converter_m3u/satellite_references.txt"
-        log_path = "/etc/jungle_converter_m3u/log.txt"
-        for input_file in input_files:
-            output_file = os.path.join(output_dir, "userbouquet." + os.path.splitext(os.path.basename(input_file))[0] + ".tv")
-            favorite_name = os.path.splitext(os.path.basename(input_file))[0]
-            convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path)
-            add_to_bouquets_tv(favorite_name)
+        input_files = glob.glob("/etc/jungle_converter_m3u/*.m3u")
+        if not input_files:
+            print("Vamos a ver, piensa, si no tienes ningun m3u en el directorio /etc/jungle_converter_m3u como quieres que funcione")
+            sys.exit(1)
+    output_dir = "/etc/enigma2"
+    satellite_reference_file = "/etc/jungle_converter_m3u/satellite_references.txt"
+    log_path = "/etc/jungle_converter_m3u/log.txt"
+    for input_file in input_files:
+        output_file = os.path.join(output_dir, "userbouquet." + os.path.splitext(os.path.basename(input_file))[0] + ".tv")
+        favorite_name = os.path.splitext(os.path.basename(input_file))[0]
+        convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path)
+        add_to_bouquets_tv(favorite_name)
             
