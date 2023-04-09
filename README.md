@@ -76,7 +76,7 @@ python /etc/jungle_converter_m3u/junglem3utobouquet.py
 * Si deseamos realizar la conversion directamente con la url ejecutaremos:
 
 ```{code-block} bash
-python /etc/jungle_converter_m3u/junglem3utobouquet.py urldescarga nombrequedeseemo
+python /etc/jungle_converter_m3u/junglem3utobouquet.py "urldescarga" nombrequedeseemosquetengalalista
 ```
 
 ## Obteniendo ayuda
