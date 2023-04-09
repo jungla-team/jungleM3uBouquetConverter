@@ -39,9 +39,10 @@ opkg install enigma2-plugin-extensions-junglem3utobouquet
 3. En caso que no le asignemos ninguno nombre extra se creara con el nombre que lleve en el archivo m3u, si no encuentra ninguna coincidencia entre palabra clave y nombre del canal se le asignara un service reference automaticamente correlativos.
 4. El archivo `satellite_references.txt` ya viene parcheado con el service reference y palabras clave que parchearan asi como el orden en la mayoria de canales, en el caso de faltar algun canal puede añadir mas palabras claves a dicho archivo.
 5. De la ejecucion del script se creara un log en `/etc/jungle_converter_m3u` que mostrara que canales no han sido parcheados por si necesita como hemos mencionado añadir mas palabras claves para afinar.
-6. Tras la ejecucion necesitara reiniciar enigma2 para que aparezca los nuevos favoritos en la lista canales.
+6. Al finalizar refresca automaticamente la lista usando la api de webif
 7. para la comparacion elimina los espacios del nombre del canal y caracteres no alfanumericos, asi como acentos para una mejor comparacion.
 8. Permite asignarle un numero de orden del canal
+9. Permite usar prefijos de idiomas configurables en archivo de configuracion para aunque los añada al favorito enigma2, pero no procese la comparacion de nombres con el archivo satellite_references.txt
 
 El formato del archivo `/etc/jungle_converter_m3u/satellite_references.txt` es simple lo podeis ver cuando lo abras con un editor de textos:
 
@@ -78,6 +79,21 @@ python /etc/jungle_converter_m3u/junglem3utobouquet.py
 ```{code-block} bash
 python /etc/jungle_converter_m3u/junglem3utobouquet.py "urldescarga" nombrequedeseemosquetengalalista
 ```
+Para la configuracion del script se usa archivo `jungle_config.json` donde podemos configurar los datos de acceso a api de openwebif asi como los prefijos de idiomas que deseemos que se procesen con el satellite_references.txt
+
+```{code-block} json
+{
+    "PORT": 80,
+    "USER": "",
+    "PASSWORD": "",
+    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"]
+}
+
+```
+--> Si no se tiene password se puede dejar como esta por defecto, si se tiene password pues se introduciria "root" "password que se tenga"
+
+
+--> Los prefijos se usan para solo procesar en la comparacion los canales que tengan en su prefijo los que hay por defecto, esto viene bien para listas m3u de miles de canales, en los que les ponen un prefijo al canal, solo procesar con el satellite_references los que pongamos, y el resto los añadira al favorito enigma2 pero sin comparacion para añadir service reference. Si desearamos por que nuestra lista es muy corta y depurada y no tiene prefijos de idiomas, añadiriamos "" en ALLOWED_PREFIXES, ejemplo: "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|", ""]
 
 ## Obteniendo ayuda
 
