@@ -1,0 +1,6 @@
+{
+    "PORT": 80,
+    "USER": "",
+    "PASSWORD": "",
+    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"]
+}

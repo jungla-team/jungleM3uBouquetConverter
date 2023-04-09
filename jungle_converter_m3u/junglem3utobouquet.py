@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #Convertir m3u en favorito enigma2 by jungle-team en base a diccionario palabras clave.
 
 import os
@@ -6,8 +5,19 @@ import re
 import glob
 import sys 
 import requests
+from urllib.parse import urlsplit, urlunsplit
+import json
 
-ALLOWED_PREFIXES = ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:"]
+def load_config_from_json_file(file_path):
+    with open(file_path, "r") as file:
+        config = json.load(file)
+    return config
+
+config = load_config_from_json_file("/etc/jungle_converter_m3u/jungle_config.json")
+ALLOWED_PREFIXES = config["ALLOWED_PREFIXES"]
+PORT = config["PORT"]
+USER = config["USER"]
+PASSWORD = config["PASSWORD"]
 
 def write_to_log(log_path, message):
     with open(log_path, 'a') as log_file:
@@ -95,7 +105,6 @@ def add_to_bouquets_tv(favorite_name):
             print("No se sobreescribe el nombre en bouquet.tv ya existe previamente")
 
 def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path):
-    m3u_file = open(input_file, "r")
     enigma2_file = open(os.path.splitext(output_file)[0] + ".tv", "w")
     satellite_reference = load_satellite_reference(satellite_reference_file)
     favorite_name = os.path.splitext(os.path.basename(input_file))[0]
@@ -105,57 +114,67 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
     channels = []
     occupied_orders = []
     skip_channel = False
-    for line in m3u_file:
-        if line.startswith("#EXTINF:"):
-            if skip_channel:
-                skip_channel = False
+    with open(input_file, "rb") as m3u_file:
+        for raw_line in m3u_file:
+            try:
+                line = raw_line.decode('utf-8')
+            except UnicodeDecodeError as e:
+                write_to_log(log_path, f"Error de codificación: {e} - Línea omitida: {raw_line.strip()}")
                 continue
-            channel_name = re.search('tvg-name="(.*?)"', line)
-            if channel_name:
-                channel_name = channel_name.group(1)
-            else:
-                channel_name = re.search('tvg-id="(.*?)"', line)
+            if line.startswith("#EXTINF:"):
+                if skip_channel:
+                    skip_channel = False
+                    continue
+                channel_name = re.search('tvg-name="(.*?)"', line)
                 if channel_name:
                     channel_name = channel_name.group(1)
                 else:
-                    channel_name_match = re.search(',(.*)', line)
-                    if channel_name_match:
-                        channel_name = channel_name_match.group(1)
+                    channel_name = re.search('tvg-id="(.*?)"', line)
+                    if channel_name:
+                        channel_name = channel_name.group(1)
                     else:
-                        print(f"Error: no se pudo extraer el nombre del canal de la línea: {line.strip()}")
-                        continue
-            prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
-            if prefix_allowed:
-                matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
-                if matching_channel_name:
-                    channel_reference, channel_display_name, order = satellite_reference.get(matching_channel_name.lower())
-                    if channel_display_name:
-                        channel_name = channel_display_name
-                    write_to_log(log_path, f"Parcheado: {channel_name}")
-
-                    if order is not None:
-                        occupied_orders.append(order)
+                        channel_name_match = re.search(',(.*)', line)
+                        if channel_name_match:
+                            channel_name = channel_name_match.group(1)
+                        else:
+                            print(f"Error: no se pudo extraer el nombre del canal de la línea: {line.strip()}")
+                            continue
+                prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
+                if prefix_allowed:
+                    matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
+                    if matching_channel_name:
+                        channel_reference, channel_display_name, order = satellite_reference.get(matching_channel_name.lower())
+                        if channel_display_name:
+                            channel_name = channel_display_name
+                        write_to_log(log_path, f"Parcheado: {channel_name}")
+                        if order is not None:
+                            occupied_orders.append(order)
+                    else:
+                        channel_reference = "4097:0:1:{:X}:0:0:0:0:0:0:".format(unique_id)
+                        unique_id += 1
+                        order = None
+                        write_to_log(log_path, f"No encontrado: {channel_name}")
                 else:
                     channel_reference = "4097:0:1:{:X}:0:0:0:0:0:0:".format(unique_id)
                     unique_id += 1
                     order = None
-                    write_to_log(log_path, f"No encontrado: {channel_name}")
-            else:
-                channel_reference = "4097:0:1:{:X}:0:0:0:0:0:0:".format(unique_id)
-                unique_id += 1
-                order = None
-        elif line.startswith("http"):
-            if line.strip().endswith(".mkv") or line.strip().endswith(".avi") or line.strip().endswith(".mp4"):
-                skip_channel = True
-                channel_reference = None
-                continue
-            if channel_reference is not None and not skip_channel:
-                channel_url = line.strip()
-                enigma2_url = "http%3a" + channel_url[5:].replace(":", "%3a")
-                channels.append((order, channel_reference, enigma2_url, channel_name))
-                channel_reference = None
-            elif skip_channel:
-                skip_channel = False
+            if line.startswith("http"):
+                if line.strip().endswith(".mkv") or line.strip().endswith(".avi") or line.strip().endswith(".mp4"):
+                    skip_channel = True
+                    channel_reference = None
+                    continue
+                if channel_reference is not None and not skip_channel:
+                    channel_url = line.strip()
+                    parsed_url = urlsplit(channel_url)
+                    if parsed_url.scheme == "https":
+                        enigma2_url = urlunsplit(("https", parsed_url.netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
+                    else:
+                        enigma2_url = urlunsplit(("http", parsed_url.netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
+                    enigma2_url = enigma2_url.replace(":", "%3a")
+                    channels.append((order, channel_reference, enigma2_url, channel_name))
+                    channel_reference = None
+                elif skip_channel:
+                    skip_channel = False
 
     def get_free_order():
         free_order = 1
@@ -171,15 +190,25 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
             unordered_channels.append(channel)
         else:
             ordered_channels.append(channel)
-    max_order = max(ordered_channels, key=lambda x: x[0])[0]
+    if ordered_channels:
+        max_order = max(ordered_channels, key=lambda x: x[0])[0]
+    else:
+        max_order = 0
     for i, channel in enumerate(unordered_channels, start=max_order + 1):
         ordered_channels.append((i, *channel[1:]))
     ordered_channels.sort(key=lambda x: x[0])
     for _, channel_reference, enigma2_url, channel_name in ordered_channels:
-        enigma2_file.write("#SERVICE {}{}\n".format(channel_reference,enigma2_url))
-        enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))
-    m3u_file.close()
+        enigma2_file.write("#SERVICE {}{}\n".format(channel_reference, enigma2_url))
+        enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))    
     enigma2_file.close()
+    
+def refresh_bouquets():
+    try:
+        base_url = f'http://localhost:{PORT}/api/'
+        requests.get(base_url + 'servicelistreload?mode=2', auth=(USER, PASSWORD))
+        print("Lista de canales actualizada con éxito.")
+    except Exception as e:
+        print(f"Error al actualizar la lista de canales: {str(e)}")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -189,7 +218,7 @@ if __name__ == "__main__":
         if response.status_code == 200:
             if len(sys.argv) > 2:
                 output_filename = sys.argv[2]
-                if not output_filename.endswith(".m3u"):
+                if not output_filename.endswith(".m3u") and not output_filename.endswith(".m3u8"):
                     output_filename += ".m3u"
             else:
                 output_filename = "temp.m3u"
@@ -201,7 +230,7 @@ if __name__ == "__main__":
             print(f"No se pudo descargar el archivo m3u de {m3u_url}. Código de estado: {response.status_code}")
             sys.exit(1)
     else:
-        input_files = glob.glob("/etc/jungle_converter_m3u/*.m3u")
+        input_files = glob.glob("/etc/jungle_converter_m3u/*.m3u") + glob.glob("/etc/jungle_converter_m3u/*.m3u8")
         if not input_files:
             print("Vamos a ver, piensa, si no tienes ningun m3u en el directorio /etc/jungle_converter_m3u como quieres que funcione")
             sys.exit(1)
@@ -213,4 +242,5 @@ if __name__ == "__main__":
         favorite_name = os.path.splitext(os.path.basename(input_file))[0]
         convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path)
         add_to_bouquets_tv(favorite_name)
+    refresh_bouquets()
             
