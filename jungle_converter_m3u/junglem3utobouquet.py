@@ -18,6 +18,37 @@ ALLOWED_PREFIXES = config["ALLOWED_PREFIXES"]
 PORT = config["PORT"]
 USER = config["USER"]
 PASSWORD = config["PASSWORD"]
+PERMITIR_EXTENSION_VIDEO = config["ALLOW_VIDEO_EXTENSIONS"]
+VIDEO_EXTENSIONS = tuple(config["VIDEO_TYPE"])
+ALLOW_COUNTRIES = config["ALLOW_COUNTRIES"]
+COUNTRIES = config["COUNTRIES"]
+favorites_by_country = {prefix: [] for prefix in COUNTRIES.keys()}
+
+def order_channels(channels_list):
+    occupied_orders = []
+    ordered_channels = []
+    unordered_channels = []
+    for channel in channels_list:
+        if channel[0] is None:
+            unordered_channels.append(channel)
+        else:
+            ordered_channels.append(channel)
+            occupied_orders.append(channel[0])
+
+    def get_free_order(occupied_orders):
+        free_order = 1
+        while True:
+            if free_order not in occupied_orders:
+                yield free_order
+            free_order += 1
+
+    free_order_gen = get_free_order(occupied_orders)
+    for channel in unordered_channels:
+        order = next(free_order_gen)
+        ordered_channels.append((order, *channel[1:]))
+
+    ordered_channels.sort(key=lambda x: x[0])
+    return ordered_channels
 
 def write_to_log(log_path, message):
     with open(log_path, 'a') as log_file:
@@ -139,8 +170,10 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                         else:
                             print(f"Error: no se pudo extraer el nombre del canal de la línea: {line.strip()}")
                             continue
+                original_channel_name = channel_name
                 prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
-                if prefix_allowed:
+                if prefix_allowed and not is_video_channel:
+                    original_channel_name = channel_name
                     matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
                     if matching_channel_name:
                         channel_reference, channel_display_name, order = satellite_reference.get(matching_channel_name.lower())
@@ -159,7 +192,9 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                     unique_id += 1
                     order = None
             if line.startswith("http"):
-                if line.strip().endswith(".mkv") or line.strip().endswith(".avi") or line.strip().endswith(".mp4"):
+                video_extensions = VIDEO_EXTENSIONS
+                is_video_channel = line.strip().endswith(video_extensions)
+                if not PERMITIR_EXTENSION_VIDEO and is_video_channel:
                     skip_channel = True
                     channel_reference = None
                     continue
@@ -171,7 +206,13 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                     else:
                         enigma2_url = urlunsplit(("http", parsed_url.netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
                     enigma2_url = enigma2_url.replace(":", "%3a")
-                    channels.append((order, channel_reference, enigma2_url, channel_name))
+                    if ALLOW_COUNTRIES:
+                        for prefix, country in COUNTRIES.items():
+                            if original_channel_name.startswith(prefix):  
+                                favorites_by_country[prefix].append((order, channel_reference, enigma2_url, channel_name))
+                                break
+                    else:
+                        channels.append((order, channel_reference, enigma2_url, channel_name))                                   
                     channel_reference = None
                 elif skip_channel:
                     skip_channel = False
@@ -214,7 +255,11 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         m3u_url = sys.argv[1]
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
-        response = requests.get(m3u_url, headers=headers)
+        try:
+            response = requests.get(m3u_url, headers=headers)
+        except requests.exceptions.RequestException as e:
+            print(f"No se pudo descargar el archivo m3u de {m3u_url}. seguramente url introducia no valida")
+            sys.exit(1)
         if response.status_code == 200:
             if len(sys.argv) > 2:
                 output_filename = sys.argv[2]
@@ -240,7 +285,20 @@ if __name__ == "__main__":
     for input_file in input_files:
         output_file = os.path.join(output_dir, "userbouquet." + os.path.splitext(os.path.basename(input_file))[0] + ".tv")
         favorite_name = os.path.splitext(os.path.basename(input_file))[0]
-        convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path)
-        add_to_bouquets_tv(favorite_name)
+        convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path)    
+        if ALLOW_COUNTRIES:
+            for prefix, country in COUNTRIES.items():
+                country_favorite_name = f"{favorite_name}_{country}"
+                country_output_file = os.path.join(output_dir, f"userbouquet.{country_favorite_name}.tv")
+                with open(country_output_file, "w") as country_enigma2_file:
+                    country_enigma2_file.write(f"#NAME {country_favorite_name}\n")
+                    ordered_channels_by_country = order_channels(favorites_by_country[prefix]) 
+                    for order, channel_reference, enigma2_url, channel_name in ordered_channels_by_country:
+                        country_enigma2_file.write("#SERVICE {}{}\n".format(channel_reference, enigma2_url))
+                        country_enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))
+                add_to_bouquets_tv(country_favorite_name)
+        else:
+            add_to_bouquets_tv(favorite_name)
+
     refresh_bouquets()
             

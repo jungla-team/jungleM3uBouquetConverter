@@ -2,5 +2,16 @@
     "PORT": 80,
     "USER": "",
     "PASSWORD": "",
-    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"]
+    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"],
+    "ALLOW_COUNTRIES": false,
+    "COUNTRIES": {
+      "ES-": "ESPAÑA",
+      "FR-": "FRANCIA",
+      "EN- ": "REINO UNIDO",
+      "DE-": "ALEMANIA",
+      "AR-": "ARABES", 
+      "IT-": "ITALIA"
+  },    
+    "ALLOW_VIDEO_EXTENSIONS": false,
+    "VIDEO_TYPE": [".mkv", ".avi", ".mp4", ".flv"]
 }
