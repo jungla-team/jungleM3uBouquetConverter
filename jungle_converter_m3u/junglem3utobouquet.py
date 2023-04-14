@@ -145,6 +145,7 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
     channels = []
     occupied_orders = []
     skip_channel = False
+    is_video_channel = False
     with open(input_file, "rb") as m3u_file:
         for raw_line in m3u_file:
             try:
