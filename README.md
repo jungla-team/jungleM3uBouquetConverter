@@ -86,14 +86,30 @@ Para la configuracion del script se usa archivo `jungle_config.json` donde podem
     "PORT": 80,
     "USER": "",
     "PASSWORD": "",
-    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"]
+    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"],
+    "ALLOW_COUNTRIES": false,
+    "COUNTRIES": {
+      "ES-": "ESPAÑA",
+      "FR-": "FRANCIA",
+      "EN- ": "REINO UNIDO",
+      "DE-": "ALEMANIA",
+      "AR-": "ARABES", 
+      "IT-": "ITALIA"
+  },    
+    "ALLOW_VIDEO_EXTENSIONS": false,
+    "VIDEO_TYPE": [".mkv", ".avi", ".mp4", ".flv"]
 }
+
 
 ```
 --> Si no se tiene password se puede dejar como esta por defecto, si se tiene password pues se introduciria "root" "password que se tenga"
 
 
 --> Los prefijos se usan para solo procesar en la comparacion los canales que tengan en su prefijo los que hay por defecto, esto viene bien para listas m3u de miles de canales, en los que les ponen un prefijo al canal, solo procesar con el satellite_references los que pongamos, y el resto los añadira al favorito enigma2 pero sin comparacion para añadir service reference. Si desearamos por que nuestra lista es muy corta y depurada y no tiene prefijos de idiomas, añadiriamos "" en ALLOWED_PREFIXES, ejemplo: "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|", ""]
+
+--> Los prefijos por paises si se activa la opcion `"ALLOW_COUNTRIES": false,`por true nos creara los favoritos enigma2 por paises, que nosotros asignemos en la opcion `"COUNTRIES` el prefijo a un pais determinado.
+
+--> en la opcion `ALLOW_VIDEO_EXTENSIONS` podemos poner false para no añadir canales tipo con extensiones de video o si poniendo true, las extensiones a las que se le aplica son las puestas en `VIDEO_TYPE
 
 ## Obteniendo ayuda
 
