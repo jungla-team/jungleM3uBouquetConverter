@@ -79,24 +79,27 @@ python /etc/jungle_converter_m3u/junglem3utobouquet.py
 ```{code-block} bash
 python /etc/jungle_converter_m3u/junglem3utobouquet.py "urldescarga" nombrequedeseemosquetengalalista
 ```
-Para la configuracion del script se usa archivo `jungle_config.json` donde podemos configurar los datos de acceso a api de openwebif asi como los prefijos de idiomas que deseemos que se procesen con el satellite_references.txt
+Para la configuracion del script se usa archivo `jungle_config.json` donde podemos configurar los datos de acceso a api de openwebif asi como los prefijos de idiomas que deseemos que se procesen con el satellite_references.txt asi como otras opciones
 
 ```{code-block} json
 {
     "PORT": 80,
     "USER": "",
     "PASSWORD": "",
-    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"],
+    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|", "Spain"],
     "ALLOW_COUNTRIES": false,
     "COUNTRIES": {
-      "ES-": "ESPAÑA",
-      "FR-": "FRANCIA",
-      "EN- ": "REINO UNIDO",
-      "DE-": "ALEMANIA",
-      "AR-": "ARABES", 
-      "IT-": "ITALIA"
-  },    
+      "ESPAÑA": ["ES -", "|ES|"],
+      "FRANCIA": ["FR -", "FR-"],
+      "REINO UNIDO": ["EN -", "EN-"],
+      "ALEMANIA": ["DE -", "DE-"],
+      "ARABES": ["AR -", "AR-"],
+      "ITALIA": ["IT -", "IT-"]
+  },
     "ALLOW_VIDEO_EXTENSIONS": false,
+    "OSCAM_ICAM": false,
+    "OSCAM_ICAM_PORT": 17999,
+    "USE_GROUP_TITLE": false,
     "VIDEO_TYPE": [".mkv", ".avi", ".mp4", ".flv"]
 }
 
@@ -107,9 +110,13 @@ Para la configuracion del script se usa archivo `jungle_config.json` donde podem
 
 --> Los prefijos se usan para solo procesar en la comparacion los canales que tengan en su prefijo los que hay por defecto, esto viene bien para listas m3u de miles de canales, en los que les ponen un prefijo al canal, solo procesar con el satellite_references los que pongamos, y el resto los añadira al favorito enigma2 pero sin comparacion para añadir service reference. Si desearamos por que nuestra lista es muy corta y depurada y no tiene prefijos de idiomas, añadiriamos "" en ALLOWED_PREFIXES, ejemplo: "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|", ""]
 
---> Los prefijos por paises si se activa la opcion `"ALLOW_COUNTRIES": false,`por true nos creara los favoritos enigma2 por paises, que nosotros asignemos en la opcion `"COUNTRIES` el prefijo a un pais determinado.
+--> Los prefijos por paises si se activa la opcion `"ALLOW_COUNTRIES": false,`por true nos creara los favoritos enigma2 por paises, que nosotros asignemos en la opcion `"COUNTRIES` el prefijo a un pais determinado, se puede asignar mas de un prefijo a un pais.
 
 --> en la opcion `ALLOW_VIDEO_EXTENSIONS` podemos poner false para no añadir canales tipo con extensiones de video o si poniendo true, las extensiones a las que se le aplica son las puestas en `VIDEO_TYPE
+
+--> en la opcion `USE_GROUP_TITLE`para listas canales m3u que el prefijo del idioma lo tiene en group_title, no hemos encontrado muchas de este tipo, pero algunas las hay como las que provienen de vavoo.
+
+--> en la opcion `OSCAM_ICAM`podemos activar esta opcion si deseamos crear la lista m3u de un favorito enigma2 openwebif de una plataforma satelite por ejemplo sky alemania convertirlo a un favorito compatible con oscam_icam
 
 ## Obteniendo ayuda
 
