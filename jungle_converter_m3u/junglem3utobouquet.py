@@ -18,12 +18,28 @@ ALLOWED_PREFIXES = config["ALLOWED_PREFIXES"]
 PORT = config["PORT"]
 USER = config["USER"]
 PASSWORD = config["PASSWORD"]
+OSCAM_ICAM = config["OSCAM_ICAM"]
+OSCAM_ICAM_PORT = config["OSCAM_ICAM_PORT"]
+USE_GROUP_TITLE = config["USE_GROUP_TITLE"]
 PERMITIR_EXTENSION_VIDEO = config["ALLOW_VIDEO_EXTENSIONS"]
 VIDEO_EXTENSIONS = tuple(config["VIDEO_TYPE"])
 ALLOW_COUNTRIES = config["ALLOW_COUNTRIES"]
 COUNTRIES = config["COUNTRIES"]
-favorites_by_country = {prefix: [] for prefix in COUNTRIES.keys()}
+favorites_by_country = {country: [] for country in COUNTRIES.keys()}
 
+def parse_m3u(file_path):
+    tvg_ids = []
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+        for line in lines:
+            tvg_id = re.search(r'tvg-id="(.*?)"', line)
+            if tvg_id:
+                service_ref = tvg_id.group(1)
+                modified_service_ref = re.sub(r'C00000', '21', service_ref)
+                tvg_ids.append(modified_service_ref)
+    return tvg_ids
+                
 def order_channels(channels_list):
     occupied_orders = []
     ordered_channels = []
@@ -46,7 +62,6 @@ def order_channels(channels_list):
     for channel in unordered_channels:
         order = next(free_order_gen)
         ordered_channels.append((order, *channel[1:]))
-
     ordered_channels.sort(key=lambda x: x[0])
     return ordered_channels
 
@@ -146,6 +161,8 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
     occupied_orders = []
     skip_channel = False
     is_video_channel = False
+    tvg_ids = parse_m3u(input_file)
+    channel_index = 0
     with open(input_file, "rb") as m3u_file:
         for raw_line in m3u_file:
             try:
@@ -172,7 +189,15 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                             print(f"Error: no se pudo extraer el nombre del canal de la línea: {line.strip()}")
                             continue
                 original_channel_name = channel_name
-                prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
+                group_title = re.search('group-title\s*=\s*["\'](.*?)["\']', line)
+                if group_title:
+                    group_title = group_title.group(1)
+                    if USE_GROUP_TITLE:
+                        prefix_allowed = any(group_title.startswith(prefix) for prefix in ALLOWED_PREFIXES)
+                    else:
+                        prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
+                else:
+                    prefix_allowed = any(channel_name.startswith(prefix) for prefix in ALLOWED_PREFIXES)
                 if prefix_allowed and not is_video_channel:
                     original_channel_name = channel_name
                     matching_channel_name = find_channel_with_keyword(channel_name, satellite_reference)
@@ -206,12 +231,33 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                         enigma2_url = urlunsplit(("https", parsed_url.netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
                     else:
                         enigma2_url = urlunsplit(("http", parsed_url.netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
-                    enigma2_url = enigma2_url.replace(":", "%3a")
+                    if OSCAM_ICAM:
+                        channel_reference = tvg_ids[channel_index]
+                        enigma2_url = urlunsplit(("http", parsed_url.netloc, parsed_url.path, parsed_url.query, parsed_url.fragment))
+                        parsed_url = urlsplit(enigma2_url)
+                        enigma2_url = urlunsplit(("http", "127.0.0.1:" + str(OSCAM_ICAM_PORT), parsed_url.path, parsed_url.query, parsed_url.fragment))
+                        enigma2_url = enigma2_url.replace(":", "%3a")
+                        channel_index += 1
+                    else:
+                        enigma2_url = enigma2_url.replace(":", "%3a")
+                    if USE_GROUP_TITLE:
+                        readprefix= group_title
+                    else:
+                        readprefix= original_channel_name
+                    if USE_GROUP_TITLE:
+                        readprefix= group_title
+                    else:
+                        readprefix= original_channel_name
                     if ALLOW_COUNTRIES:
-                        for prefix, country in COUNTRIES.items():
-                            if original_channel_name.startswith(prefix):  
-                                favorites_by_country[prefix].append((order, channel_reference, enigma2_url, channel_name))
+                        added_to_favorites = False
+                        for country, prefixes in COUNTRIES.items():
+                            if added_to_favorites:
                                 break
+                            for prefix in prefixes:
+                                if readprefix.startswith(prefix):
+                                    favorites_by_country[country].append((order, channel_reference, enigma2_url, channel_name))
+                                    added_to_favorites = True
+                                    break
                     else:
                         channels.append((order, channel_reference, enigma2_url, channel_name))                                   
                     channel_reference = None
@@ -288,12 +334,12 @@ if __name__ == "__main__":
         favorite_name = os.path.splitext(os.path.basename(input_file))[0]
         convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, log_path)    
         if ALLOW_COUNTRIES:
-            for prefix, country in COUNTRIES.items():
+            for country, favorites in favorites_by_country.items():
                 country_favorite_name = f"{favorite_name}_{country}"
                 country_output_file = os.path.join(output_dir, f"userbouquet.{country_favorite_name}.tv")
                 with open(country_output_file, "w") as country_enigma2_file:
                     country_enigma2_file.write(f"#NAME {country_favorite_name}\n")
-                    ordered_channels_by_country = order_channels(favorites_by_country[prefix]) 
+                    ordered_channels_by_country = order_channels(favorites)
                     for order, channel_reference, enigma2_url, channel_name in ordered_channels_by_country:
                         country_enigma2_file.write("#SERVICE {}{}\n".format(channel_reference, enigma2_url))
                         country_enigma2_file.write("#DESCRIPTION {}\n".format(channel_name))

@@ -2,16 +2,19 @@
     "PORT": 80,
     "USER": "",
     "PASSWORD": "",
-    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|"],
+    "ALLOWED_PREFIXES": ["ES-", "ES -", "ES:", "|ES|", "SP -", "SP-", "SP:", "|SP|", "Spain"],
     "ALLOW_COUNTRIES": false,
     "COUNTRIES": {
-      "ES-": "ESPAÑA",
-      "FR-": "FRANCIA",
-      "EN- ": "REINO UNIDO",
-      "DE-": "ALEMANIA",
-      "AR-": "ARABES", 
-      "IT-": "ITALIA"
-  },    
+      "ESPAÑA": ["ES -", "|ES|"],
+      "FRANCIA": ["FR -", "FR-"],
+      "REINO UNIDO": ["EN -", "EN-"],
+      "ALEMANIA": ["DE -", "DE-"],
+      "ARABES": ["AR -", "AR-"],
+      "ITALIA": ["IT -", "IT-"]
+  },
     "ALLOW_VIDEO_EXTENSIONS": false,
+    "OSCAM_ICAM": false,
+    "OSCAM_ICAM_PORT": 17999,
+    "USE_GROUP_TITLE": false,
     "VIDEO_TYPE": [".mkv", ".avi", ".mp4", ".flv"]
 }
