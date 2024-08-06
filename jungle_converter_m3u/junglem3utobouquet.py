@@ -189,7 +189,7 @@ def convert_m3u_to_enigma2(input_file, output_file, satellite_reference_file, lo
                             print(f"Error: no se pudo extraer el nombre del canal de la línea: {line.strip()}")
                             continue
                 original_channel_name = channel_name
-                group_title = re.search('group-title\s*=\s*["\'](.*?)["\']', line)
+                group_title = re.search(r'group-title\s*=\s*["\'](.*?)["\']', line)
                 if group_title:
                     group_title = group_title.group(1)
                     if USE_GROUP_TITLE:
